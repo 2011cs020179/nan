@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Add styling for the dark background */
+    body {
+      background-color: #000;
+      color: #fff;
+      text-align: center;
+    }
+    /* Style for the code snippets */
+    .code-snippet {
+      background-color: #000;
+      padding: 10px;
+      margin-bottom: 20px;
+      display: none;
+      text-align: left;
+    }
+    /* Style for the "Show Code" buttons */
+    .show-button {
+      background-color: #22222200;
+      color: #fff;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    /* Style for the "Copy Code" buttons */
+    .copy-button {
+      background-color: #333;
+      color: #fff;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="show-button" onclick="showCode('code-snippet-1')">W7 RNN</button>
+  <button class="show-button" onclick="showCode('code-snippet-2')">W8 CNN</button>
+  <button class="show-button" onclick="showCode('code-snippet-3')">W9 AutoEncoder</button>
+  <button class="show-button" onclick="showCode('code-snippet-4')">W10 LSTM</button>
+  <button class="show-button" onclick="showCode('code-snippet-5')">W11 GAN</button>
+  <button class="show-button" onclick="showCode('code-snippet-6')">W12 W2V</button>
+
+
+  <div class="code-snippet" id="code-snippet-1">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-1')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-1">
+#w7 rnn
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, SimpleRNN
+
+t = np.linspace(0, 160, num=1000)
+x = np.sin(t) + np.random.normal(0, 0.1, size=1000)
+window_size = 10
+X = [x[i:i + window_size] for i in range(len(x) - window_size)]
+y = [x[i + window_size] for i in range(len(x) - window_size)]
+
+X = np.array(X)[:, :, np.newaxis]
+y = np.array(y)[:, np.newaxis]
+
+X_train, X_test, y_train, y_test = X[:800], X[800:], y[:800], y[800:]
+
+model = Sequential()
+model.add(SimpleRNN(32, input_shape=(window_size, 1)))
+model.add(Dense(1))
+model.compile(loss="mse", optimizer="adam")
+model.fit(X_train, y_train, epochs=50, batch_size=32)
+
+y_pred = model.predict(X_test)
+
+plt.plot(t[800 + window_size:], y_pred, label='Predicted')
+plt.plot(t[800 + window_size:], y_test, label="True")
+plt.legend()
+plt.show()
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-2">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-2')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-2">
+#w8 CNN
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+
+#Loading the MNIST dataset and preprocessing the data
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+X_train = X_train.astype('float32') / 255.0
+X_test = X_test.astype('float32') / 255.0
+X_train = X_train.reshape((X_train.shape[0], 28, 28, 1))
+X_test = X_test.reshape((X_test.shape[0], 28, 28, 1))
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+#Building the CNN model
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dense(10, activation='softmax'))
+
+#Compiling and training the model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.fit(X_train, y_train, epochs=5, batch_size=64, validation_data=(X_test, y_test))
+
+#Evaluating the model
+loss, accuracy = model.evaluate(X_test, y_test)
+print('Test loss:', loss)
+print('Test accuracy:', accuracy)
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-3">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-3')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-3">
+#W9 AutoEncoder
+import numpy as np
+n_samples, n_features = 1000, 10
+X = np.random.randn(n_samples, n_features)
+n_hidden_units = 5
+W1 = np.random.randn(n_features, n_hidden_units)
+W2 = np.random.randn(n_hidden_units, n_features)
+b1 = np.zeros(n_hidden_units)
+b2 = np.zeros(n_features)
+learning_rate = 0.01
+num_epochs = 100
+for epoch in range(num_epochs):
+    # Forward pass
+    hidden = np.maximum(np.dot(X, W1) + b1, 0)
+    output = np.dot(hidden, W2) + b2
+    loss = np.mean((X - output) ** 2)
+
+    # Backward pass
+    output_delta = (output - X) / n_samples
+    hidden_delta = np.dot(output_delta, W2.T)
+    hidden_delta[hidden < 0] = 0
+    W2 -= learning_rate * np.dot(hidden.T, output_delta)
+    b2 -= learning_rate * np.sum(output_delta, axis=0)
+    W1 -= learning_rate * np.dot(X.T, hidden_delta)
+    b1 -= learning_rate * np.sum(hidden_delta, axis=0)
+    print(f"Epoch {epoch+1}/{num_epochs}, loss={loss:.4f}")
+encoded = np.maximum(np.dot(X, W1) + b1, 0)
+decoded = np.dot(encoded, W2) + b2
+print("Original data:")
+print(X[:5])
+print("\nReconstructed data:")
+print(decoded[:5])
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-4">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-4')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-4">
+#w10 lstm
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.preprocessing import sequence
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Dense
+max_features = 5000
+max_length = 500
+batch_size = 32
+embedding_dims = 50
+hidden_dims = 100
+epochs = 5
+
+#Loading the IMDB dataset
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+x_train = sequence.pad_sequences(x_train, maxlen=max_length)
+x_test = sequence.pad_sequences(x_test, maxlen=max_length)
+model = Sequential()
+model.add(Embedding(max_features, embedding_dims, input_length=max_length))
+model.add(LSTM(hidden_dims))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test))
+
+plt.plot(history.history['accuracy'], label='Train')
+plt.plot(history.history['val_accuracy'], label='Validation')
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend()
+plt.show()
+
+loss, accuracy = model.evaluate(x_test, y_test)
+print(f'Test loss: {loss}')
+print(f'Test accuracy: {accuracy}')
+</code>
+</pre>
+</div>
+
+<div class="code-snippet" id="code-snippet-5">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-5')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-5">
+#W11 GAN
+import tensorflow.keras
+from tensorflow.keras import layers
+from keras.datasets import mnist
+import numpy as np
+import matplotlib.pyplot as plt
+encoding_dim = 32
+input_img = keras.Input(shape=(784,))
+encoded = layers.Dense(encoding_dim, activation='relu')(input_img)
+decoded = layers.Dense(784, activation='sigmoid')(encoded)
+autoencoder = keras.Model(input_img, decoded)
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train.astype('float32') / 255.
+x_test = x_test.astype('float32') / 255.
+x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+autoencoder.fit(x_train, x_train, epochs=50, batch_size=256, shuffle=True, validation_data=(x_test, x_test))
+encoded_imgs = autoencoder.predict(x_test)
+n = 10
+plt.figure(figsize=(20, 4))
+for i in range(n):
+    ax = plt.subplot(2, n, i + 1)
+    plt.imshow(x_test[i].reshape(28, 28))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    ax = plt.subplot(2, n, i + 1 + n)
+    plt.imshow(encoded_imgs[i].reshape(28, 28))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+plt.show()
+    </code>
+  </pre>
+</div>
+
+<div class="code-snippet" id="code-snippet-6">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-6')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-6">
+#W12 W2V
+from gensim.models import Word2Vec
+dataset = [
+    ['k', 'am', 'learning'],
+    ['I', 'enjoy', 'deep', 'learning'],
+    ['I', 'enjoy', 'NLP']
+]
+model = Word2Vec(dataset, min_count=1)
+word = 'learning'
+similar_words = model.wv.most_similar(word)
+print(f"Words similar to '{word}':")
+for similar_word, similarity in similar_words:
+    print(f"{similar_word}, Similarity: {similarity:.4f}")
+    </code>
+  </pre>
+</div>
+  <script>
+    function showCode(elementId) {
+      // Get all the code snippets
+      var codeSnippets = document.getElementsByClassName("code-snippet");
+
+      // Loop through all the code snippets and hide them
+      for (var i = 0; i < codeSnippets.length; i++) {
+        codeSnippets[i].style.display = "none";
+      }
+
+      // Show the selected code snippet
+      var selectedSnippet = document.getElementById(elementId);
+      selectedSnippet.style.display = "block";
+    }
+
+    function copyToClipboard(elementId) {
+      // Get the text from the code snippet
+      var codeSnippet = document.getElementById(elementId);
+      var text = codeSnippet.getElementsByTagName("code")[0].textContent;
+
+      // Create a temporary textarea element for copying
+      var temp = document.createElement("textarea");
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+
+      // Copy the text to the clipboard
+      navigator.clipboard.writeText(temp.value)
+        .then(() => {
+            console.log('Code copied to clipboard');
+            alert('Code copied to clipboard!')
+        })
+        .catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+
+      // Remove the temporary textarea
+      document.body.removeChild(temp);
+    }
+
+  </script>
+
+</body>
+</html>
