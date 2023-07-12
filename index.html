@@ -39,20 +39,406 @@
   </style>
 </head>
 <body>
-
-  <button class="show-button" onclick="showCode('code-snippet-1')">W7 RNN</button>
-  <button class="show-button" onclick="showCode('code-snippet-2')">W8 CNN</button>
-  <button class="show-button" onclick="showCode('code-snippet-3')">W9 AutoEncoder</button>
-  <button class="show-button" onclick="showCode('code-snippet-4')">W10 LSTM</button>
-  <button class="show-button" onclick="showCode('code-snippet-5')">W11 GAN</button>
-  <button class="show-button" onclick="showCode('code-snippet-6')">W12 W2V</button>
-
-
+  <div>
+  <button class="show-button" onclick="showCode('code-snippet-1')">W1</button>
+  <button class="show-button" onclick="showCode('code-snippet-2')">W2 FFN</button>
+  <button class="show-button" onclick="showCode('code-snippet-3')">W3 Backpropagation</button>
+  <button class="show-button" onclick="showCode('code-snippet-4')">W4 SGD</button>
+  <button class="show-button" onclick="showCode('code-snippet-5')">W4 BGD</button>
+  <button class="show-button" onclick="showCode('code-snippet-6')">W4 MBGD</button>
+  <button class="show-button" onclick="showCode('code-snippet-7')">W5 PCA</button>
+  <button class="show-button" onclick="showCode('code-snippet-8')">W6 SVD</button></div>
+  <div>
+  <button class="show-button" onclick="showCode('code-snippet-9')">W7 RNN</button>
+  <button class="show-button" onclick="showCode('code-snippet-10')">W8 CNN</button>
+  <button class="show-button" onclick="showCode('code-snippet-11')">W9 AutoEncoders</button>
+  <button class="show-button" onclick="showCode('code-snippet-12')">W10 LSTM</button>
+  <button class="show-button" onclick="showCode('code-snippet-13')">W11 GAN</button>
+  <button class="show-button" onclick="showCode('code-snippet-14')">W12 word2vec</button></div>
   <div class="code-snippet" id="code-snippet-1">
     <button class="copy-button" onclick="copyToClipboard('code-snippet-1')">Copy Code</button>
     <pre>
       <code id="code-snippet-1">
-#w7 rnn
+import tensorflow as tf
+mnist = tf.keras.datasets.mnist
+(x_train,y_train), (x_test,y_test) = mnist.load_data()
+model = tf.keras.models.Sequential([tf.keras.layers.Flatten(input_shape=(28,28)),
+                                   tf.keras.layers.Dense(128,activation='relu'),
+                                   tf.keras.layers.Dropout(0.2),
+                                   tf.keras.layers.Dense(10)])
+loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+model.compile(optimizer='adam',loss=loss_fn,metrics=['accuracy'])
+model.fit(x_train,y_train,epochs=5)
+model.evaluate(x_test,y_test,verbose=2)
+      </code>
+    </pre>
+  </div>
+  <div class="code-snippet" id="code-snippet-2">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-2')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-2">
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.colors
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, mean_squared_error
+from tqdm import tqdm_notebook
+
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.datasets import make_blobs
+class SigmoidNeuron:
+  #A class for sigmoid neuron
+  
+  def __init__(self):
+    self.w = None
+    self.b = None
+    
+ 
+  def perceptron(self, x):
+    return np.dot(x, self.w.T) + self.b
+  
+  def sigmoid(self, x):
+    return 1.0/(1.0 + np.exp(-x))
+  
+  def grad_w_mse(self, x, y):
+    y_pred = self.sigmoid(self.perceptron(x))
+    return (y_pred - y) * y_pred * (1 - y_pred) * x
+  
+  def grad_b_mse(self, x, y):
+    y_pred = self.sigmoid(self.perceptron(x))
+    return (y_pred - y) * y_pred * (1 - y_pred)
+  
+  def grad_w_ce(self, x, y):
+    y_pred = self.sigmoid(self.perceptron(x))
+    if y == 0:
+      return y_pred * x
+    elif y == 1:
+      return -1 * (1 - y_pred) * x
+    else:
+      raise ValueError("y should be 0 or 1")
+    
+  def grad_b_ce(self, x, y):
+    y_pred = self.sigmoid(self.perceptron(x))
+    if y == 0:
+      return y_pred 
+    elif y == 1:
+      return -1 * (1 - y_pred)
+    else:
+      raise ValueError("y should be 0 or 1")
+  
+  def fit(self, X, Y, epochs=1, learning_rate=1, initialise=True, loss_fn="mse", display_loss=False):
+    
+    # initialise w, b
+    if initialise:
+      self.w = np.random.randn(1, X.shape[1])
+      self.b = 0
+      
+    if display_loss:
+      loss = {}
+    
+    for i in tqdm_notebook(range(epochs), total=epochs, unit="epoch"):
+      dw = 0
+      db = 0
+      for x, y in zip(X, Y):
+        if loss_fn == "mse":
+          dw += self.grad_w_mse(x, y)
+          db += self.grad_b_mse(x, y) 
+        elif loss_fn == "ce":
+          dw += self.grad_w_ce(x, y)
+          db += self.grad_b_ce(x, y)
+          
+      m = X.shape[1]    
+      self.w -= learning_rate * dw/m
+      self.b -= learning_rate * db/m
+      
+      if display_loss:
+        Y_pred = self.sigmoid(self.perceptron(X))
+        if loss_fn == "mse":
+          loss[i] = mean_squared_error(Y, Y_pred)
+        elif loss_fn == "ce":
+          loss[i] = log_loss(Y, Y_pred)
+    
+    if display_loss:
+      plt.plot(loss.values())
+      plt.xlabel('Epochs')
+      if loss_fn == "mse":
+        plt.ylabel('Mean Squared Error')
+      elif loss_fn == "ce":
+        plt.ylabel('Log Loss')
+      plt.show()
+      
+  def predict(self, X):
+    Y_pred = []
+    for x in X:
+      y_pred = self.sigmoid(self.perceptron(x))
+      Y_pred.append(y_pred)
+    return np.array(Y_pred)
+my_cmap = matplotlib.colors.LinearSegmentedColormap.from_list("", ["red", "yellow", "green"])
+
+data, labels = make_blobs(n_samples=1000, centers=4,n_features=2, random_state=0)
+print(data.shape, labels.shape)
+
+plt.scatter(data[:,0], data[:,1], c = labels, cmap = my_cmap)
+plt.show()
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-3">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-3')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-3">
+#w3 Backpropagation
+import numpy as np
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+  return x * (1 - x)
+
+input_size = 2
+hidden_size = 3
+output_size = 1
+
+weights_hidden = np.random.uniform(size=(input_size, hidden_size))
+weights_output = np.random.uniform(size=(hidden_size, output_size))
+
+learning_rate = 0.1
+epochs = 2000
+X = np.array([[0.5, 0.6], [0, 1], [1, 0], [1, 1]])
+y = np.array([[0.7], [1], [1], [0.7]])
+for i in range(epochs):
+  # Forward pass
+  hidden_layer = sigmoid(np.dot(X, weights_hidden))
+  output_layer = sigmoid(np.dot(hidden_layer, weights_output))
+  error = y - output_layer
+  mse = np.mean(np.square(error))
+  if i % 100 == 0:
+    print(f"Epoch {i}, MSE: {mse}")
+    print("Output:", output_layer.T)
+
+  # Backward pass
+  output_delta = error * sigmoid_derivative(output_layer)
+  hidden_error = output_delta.dot(weights_output.T)
+  hidden_delta = hidden_error * sigmoid_derivative(hidden_layer)
+  weights_output += learning_rate * hidden_layer.T.dot(output_delta)
+  weights_hidden += learning_rate * X.T.dot(hidden_delta)
+  
+hidden_layer = sigmoid(np.dot(X, weights_hidden))
+output_layer = sigmoid(np.dot(hidden_layer, weights_output))
+print("Final output:", output_layer.T)
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-4">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-4')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-4">
+#sgd w4
+import numpy as np
+from matplotlib import pyplot as plt
+
+def compute_cost(X, y, theta):
+    m = y.size
+    h = X.dot(theta)
+    J = (1 / (2 * m)) * np.sum(np.square(h - y))
+    return J
+
+def stoch(X, y, alpha, num_iter):
+    m = y.size
+    n = X.shape[1]
+    theta = np.zeros(n)
+    j_history = np.zeros(num_iter)
+
+    for i in range(num_iter):
+        indices = np.random.permutation(m)
+        X = X[indices, :]
+        y = y[indices]
+
+        for j in range(m):
+            h = X[j, :].dot(theta)
+            theta = theta - alpha * (h - y[j]) * X[j, :]
+        j_history[i] = compute_cost(X, y, theta)
+
+    return theta, j_history
+
+X = np.array([1, 2, 3, 4, 5]).reshape(-1, 1)
+y = np.array([1, 2, 3, 4, 5])
+X = np.hstack([np.ones_like(X), X])
+theta, j_history = stoch(X, y, alpha=0.01, num_iter=1000)
+
+plt.plot(j_history)
+plt.xlabel("iterations")
+plt.ylabel("cost")
+plt.show()
+      </code>
+    </pre>
+  </div>
+
+  <div class="code-snippet" id="code-snippet-5">
+    <button class="copy-button" onclick="copyToClipboard('code-snippet-5')">Copy Code</button>
+    <pre>
+      <code id="code-snippet-5">
+#batch gradient descent w4
+import numpy as np
+import matplotlib.pyplot as plt
+
+def batch_gradient_descent(X, y_true, epochs, learning_rate=0.01):
+    number_of_features = X.shape[1]
+    w = np.ones(shape=(number_of_features))
+    b = 0
+    total_samples = X.shape[0]
+    cost_list = []
+    epoch_list = []
+
+    for i in range(epochs):
+        y_predicted = np.dot(w, X.T) + b
+        w_grad = -(2/total_samples)*(X.T.dot(y_true-y_predicted))
+        b_grad = -(2/total_samples)*np.sum(y_true-y_predicted)
+        w = w - learning_rate * w_grad
+        b = b - learning_rate * b_grad
+        cost = np.mean(np.square(y_true-y_predicted))
+
+        if i % 10 == 0:
+            cost_list.append(cost)
+            epoch_list.append(i)
+
+    return w, b, cost, cost_list, epoch_list
+
+scaled_X = np.array([[0.55, 0.7], [0.62, 0.45], [0.28, 0.9], [0.34, 0.3], [0.12, 0.5], [0.3, 0.2], [0.75, 0.5], [0.73, 0.8]])
+scaled_y = np.array([2.45, 2.2, 1.85, 1.45, 1.0, 1.0, 2.0, 2.3])
+
+w, b, cost, cost_list, epoch_list = batch_gradient_descent(scaled_X, scaled_y.reshape(scaled_y.shape[0],), 500)
+
+plt.xlabel("Epoch")
+plt.ylabel("Cost")
+plt.plot(epoch_list, cost_list)
+#plt.title("Batch Gradient Descent")
+plt.show()
+</code>
+</pre>
+</div>
+
+<div class="code-snippet" id="code-snippet-6">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-6')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-6">
+#w4 mbgd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
+
+def mini_batch_gradient_descent(X, y, epochs=100, batch_size=5, learning_rate=0.01):
+    # Initialize weights and bias
+    w = np.ones(X.shape[1])
+    b = 0
+    
+    # Calculate number of batches
+    num_batches = len(X) // batch_size
+    costs = []
+    
+    # Loop through epochs
+    for i in range(epochs):
+        X, y = shuffle(X, y)
+        
+        for j in range(num_batches):
+            # Get batch of X and y
+            X_batch = X[j*batch_size:(j+1)*batch_size]
+            y_batch = y[j*batch_size:(j+1)*batch_size]
+            
+            # Make predictions and calculate gradients
+            y_pred = X_batch @ w + b
+            w_grad = -(2/len(X_batch)) * X_batch.T @ (y_batch - y_pred)
+            b_grad = -(2/len(X_batch)) * np.sum(y_batch - y_pred)
+            
+            # Update weights and bias
+            w -= learning_rate * w_grad
+            b -= learning_rate * b_grad
+            
+            # Calculate cost and append to list
+            cost = np.mean(np.square(y_batch - y_pred))
+            costs.append(cost)
+    
+    return w, b, costs
+
+# Test the function with example data
+X = np.array([[1, 2], [2, 4], [3, 6], [4, 8]])
+y = np.array([2, 4, 6, 8])
+
+w, b, costs = mini_batch_gradient_descent(X, y, epochs=100, batch_size=2, learning_rate=0.01)
+
+#Ploting the cost over epochs
+plt.xlabel("epoch")
+plt.ylabel("cost")
+plt.plot(range(len(costs)), costs)
+plt.show()
+    </code>
+  </pre>
+</div>
+
+<div class="code-snippet" id="code-snippet-7">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-7')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-7">
+#W5 pca
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
+dataset = pd.read_csv(url, names=names)
+X = dataset.iloc[:, :-1].values
+y = dataset.iloc[:, -1].values
+X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+cov_matrix = np.cov(X.T)
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+idx = eigenvalues.argsort()[::-1]
+eigenvectors = eigenvectors[:, idx]
+cumulative_variance_ratio = np.cumsum(eigenvalues / np.sum(eigenvalues))
+plt.plot(cumulative_variance_ratio)
+plt.xlabel('Number of components')
+plt.ylabel('Cumulative explained variance ratio')
+plt.show()
+num_components = np.argmax(cumulative_variance_ratio >= 0.95) + 1
+print(f'Number of components chosen: {num_components}')
+X_transformed = np.dot(X, eigenvectors[:, :num_components])
+for class_name, class_marker in zip(['Iris-setosa', 'Iris-versicolor', 'Iris-virginica'], ['o', 's', '^']):
+    plt.scatter(X_transformed[y == class_name, 0], X_transformed[y == class_name, 1], marker=class_marker, label=class_name)
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.legend()
+plt.show()
+    </code>
+  </pre>
+</div>
+
+<div class="code-snippet" id="code-snippet-8">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-8')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-8">
+#w6 svd
+import numpy as np
+A=np.array([[1,2],[3,4],[5,6]])
+U,s,Vt=np.linalg.svd(A)
+sigma=np.zeros_like(A)
+sigma[:min(A.shape),:min(A.shape)]=np.diag(s)
+B=np.dot(U,np.dot(sigma,Vt))
+print("Original Matrix:\n",A)
+print("U:\n",U)
+print("s:\n",s)
+print("Vt:\n",Vt)
+print("Reconstructed Matrix:\n",B)
+    </code>
+  </pre>
+</div>
+<div class="code-snippet" id="code-snippet-9">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-9')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-9">
+#w7 RNN
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
@@ -81,21 +467,20 @@ plt.plot(t[800 + window_size:], y_pred, label='Predicted')
 plt.plot(t[800 + window_size:], y_test, label="True")
 plt.legend()
 plt.show()
-      </code>
-    </pre>
-  </div>
-
-  <div class="code-snippet" id="code-snippet-2">
-    <button class="copy-button" onclick="copyToClipboard('code-snippet-2')">Copy Code</button>
-    <pre>
-      <code id="code-snippet-2">
-#w8 CNN
+    </code>
+  </pre>
+</div>
+<div class="code-snippet" id="code-snippet-10">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-10')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-10">
+#W8 CNN
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 
-#Loading the MNIST dataset and preprocessing the data
+# Load the MNIST dataset and preprocess the data
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 X_train = X_train.astype('float32') / 255.0
 X_test = X_test.astype('float32') / 255.0
@@ -104,7 +489,7 @@ X_test = X_test.reshape((X_test.shape[0], 28, 28, 1))
 y_train = to_categorical(y_train)
 y_test = to_categorical(y_test)
 
-#Building the CNN model
+# Build the CNN model
 model = Sequential()
 model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
 model.add(MaxPooling2D((2, 2)))
@@ -114,22 +499,21 @@ model.add(Flatten())
 model.add(Dense(64, activation='relu'))
 model.add(Dense(10, activation='softmax'))
 
-#Compiling and training the model
+# Compile and train the model
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.fit(X_train, y_train, epochs=5, batch_size=64, validation_data=(X_test, y_test))
 
-#Evaluating the model
+# Evaluate the model
 loss, accuracy = model.evaluate(X_test, y_test)
 print('Test loss:', loss)
 print('Test accuracy:', accuracy)
-      </code>
-    </pre>
-  </div>
-
-  <div class="code-snippet" id="code-snippet-3">
-    <button class="copy-button" onclick="copyToClipboard('code-snippet-3')">Copy Code</button>
-    <pre>
-      <code id="code-snippet-3">
+    </code>
+  </pre>
+</div>
+<div class="code-snippet" id="code-snippet-11">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-11')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-11">
 #W9 AutoEncoder
 import numpy as np
 n_samples, n_features = 1000, 10
@@ -162,14 +546,13 @@ print("Original data:")
 print(X[:5])
 print("\nReconstructed data:")
 print(decoded[:5])
-      </code>
-    </pre>
-  </div>
-
-  <div class="code-snippet" id="code-snippet-4">
-    <button class="copy-button" onclick="copyToClipboard('code-snippet-4')">Copy Code</button>
-    <pre>
-      <code id="code-snippet-4">
+    </code>
+  </pre>
+</div>
+<div class="code-snippet" id="code-snippet-12">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-12')">Copy Code</button>
+  <pre>
+    <code id="code-snippet-12">
 #w10 lstm
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -206,14 +589,13 @@ plt.show()
 loss, accuracy = model.evaluate(x_test, y_test)
 print(f'Test loss: {loss}')
 print(f'Test accuracy: {accuracy}')
-</code>
-</pre>
+    </code>
+  </pre>
 </div>
-
-<div class="code-snippet" id="code-snippet-5">
-  <button class="copy-button" onclick="copyToClipboard('code-snippet-5')">Copy Code</button>
+<div class="code-snippet" id="code-snippet-13">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-13')">Copy Code</button>
   <pre>
-    <code id="code-snippet-5">
+    <code id="code-snippet-13">
 #W11 GAN
 import tensorflow.keras
 from tensorflow.keras import layers
@@ -250,11 +632,10 @@ plt.show()
     </code>
   </pre>
 </div>
-
-<div class="code-snippet" id="code-snippet-6">
-  <button class="copy-button" onclick="copyToClipboard('code-snippet-6')">Copy Code</button>
+<div class="code-snippet" id="code-snippet-14">
+  <button class="copy-button" onclick="copyToClipboard('code-snippet-14')">Copy Code</button>
   <pre>
-    <code id="code-snippet-6">
+    <code id="code-snippet-14">
 #W12 W2V
 from gensim.models import Word2Vec
 dataset = [
@@ -310,6 +691,10 @@ for similar_word, similarity in similar_words:
       // Remove the temporary textarea
       document.body.removeChild(temp);
     }
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+  
 
   </script>
 
